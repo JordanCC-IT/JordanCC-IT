@@ -1,4 +1,4 @@
-- 👋 Hi, I’m @JSoul28
+- 👋 Hi, I’m @JordanC
 - 👀 I’m interested in ... IT Security and the ability to harden our defeneses while also utilizing automation scripts to help simplify complex tasks.
 - 🌱 I’m currently learning ... Python and C++
 - 💞️ I’m looking to collaborate on ... python related projects
