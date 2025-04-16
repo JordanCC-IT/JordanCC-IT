@@ -1,34 +1,88 @@
 import random
 import math
+import time  # ⏱️ Timer module
 
-Lower = int(input("Enter the lower bound"))
-Upper = int(input("Enter the upper bound"))
+def get_valid_integer(prompt):
+    while True:
+        try:
+            return int(input(prompt))
+        except ValueError:
+            print("❌ Please enter a valid integer.")
 
-x = random.randint(Lower,Upper)
+def choose_difficulty():
+    print("\nChoose your difficulty level:")
+    print("1. Easy (1-10) 🎈")
+    print("2. Medium (1-50) ⚔️")
+    print("3. Hard (1-100) 🧠")
+    print("4. Custom Range 🛠️")
 
-total_changes = math.ceil(math.log(Upper - Lower + 1,2))
+    while True:
+        choice = input("Enter the number of your choice: ").strip()
+        if choice == "1":
+            return 1, 10
+        elif choice == "2":
+            return 1, 50
+        elif choice == "3":
+            return 1, 100
+        elif choice == "4":
+            lower = get_valid_integer("Enter the lower bound: ")
+            upper = get_valid_integer("Enter the upper bound: ")
+            if upper > lower:
+                return lower, upper
+            else:
+                print("⚠️ Upper bound must be greater than lower bound.\n")
+        else:
+            print("❌ Invalid choice. Please select a valid difficulty.")
 
-print("\n\tYou've only ", total_changes, " changes to guess the integer!\n")
+def format_time(seconds):
+    minutes = int(seconds // 60)
+    secs = int(seconds % 60)
+    return f"{minutes}m {secs}s" if minutes else f"{secs}s"
 
-count = 0
-flag = False
+def play_game():
+    print("🎯 Welcome to the Number Guessing Game!")
+    lower, upper = choose_difficulty()
 
-while count < total_changes :
-    count +=1
+    secret_number = random.randint(lower, upper)
+    total_chances = math.ceil(math.log(upper - lower + 1, 2))
 
-    guess = int(input("Your guess number is: "))
+    print(f"\n🤖 I've picked a number between {lower} and {upper}.")
+    print(f"🧠 You have {total_chances} chances to guess it!\n")
 
-    if x == guess :
-        print("Congratulations you did it in ",count, "try")
+    # ⏱️ Start timer
+    start_time = time.time()
 
-        flag = True
-        break
+    attempts = 0
+    while attempts < total_chances:
+        guess = get_valid_integer(f"🔢 Attempt {attempts + 1}: Enter your guess: ")
+        attempts += 1
 
-    elif x > guess:
-        print("You guessed too small")
-    elif x< guess:
-        print("You guessed too high")
+        if guess == secret_number:
+            end_time = time.time()
+            total_time = end_time - start_time
+            print(f"\n🎉 Congratulations! You guessed the number in {attempts} {'try' if attempts == 1 else 'tries'}!")
+            print(f"⏱️ Time taken: {format_time(total_time)}")
+            break
+        elif guess < secret_number:
+            print("📉 Too low! Try a higher number.\n")
+        else:
+            print("📈 Too high! Try a lower number.\n")
+    else:
+        end_time = time.time()
+        total_time = end_time - start_time
+        print(f"\n❌ You've used all {total_chances} chances. The number was {secret_number}.")
+        print(f"🕒 Time taken: {format_time(total_time)}")
+        print("💡 Better luck next time!\n")
 
-if not flag:
-    print("\nThe number is %d" % x)
-    print("\tBetter Luck Next Time!")
+def main():
+    while True:
+        play_game()
+        again = input("🔁 Do you want to play again? (yes/no): ").strip().lower()
+        if again not in ("yes", "y"):
+            print("👋 Thanks for playing! Goodbye.")
+            break
+        print("\n" + "="*50 + "\n")
+
+if __name__ == "__main__":
+    main()
+
