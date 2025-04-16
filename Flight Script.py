@@ -1,4 +1,5 @@
 import datetime
+from tabulate import tabulate
 
 # Simulated flight records (In a real-world scenario, this would come from a database)
 flights = [
@@ -19,9 +20,7 @@ def get_user_input():
     # Validate date format if provided
     if date_input and not validate_date(date_input):
         print("Invalid date format. Please enter a valid date in YYYY-MM-DD format.")
-
         return None, None, None
-
 
     return name, flight_number, date_input
 
@@ -42,7 +41,7 @@ def check_flight_history(name, flight_number=None, date=None):
     for flight in flights:
         # Match by name, and optionally by flight number and date
         if flight["name"].lower() == name.lower():
-            if flight_number and flight["flight_number"] != flight_number:
+            if flight_number and flight["flight_number"].lower() != flight_number.lower():
                 continue  # Skip if the flight number doesn't match
             if date and flight["date"] != date:
                 continue  # Skip if the date doesn't match
@@ -51,23 +50,29 @@ def check_flight_history(name, flight_number=None, date=None):
     return matching_flights
 
 
+def display_flight_history(flights_found):
+    """Display flight history in a table format."""
+    table = [[f["flight_number"], f["date"], f["destination"]] for f in flights_found]
+    print(tabulate(table, headers=["Flight Number", "Date", "Destination"], tablefmt="grid"))
+
+
 def main():
-    # Get the user input
-    name, flight_number, date = get_user_input()
+    while True:
+        name, flight_number, date = get_user_input()
 
-    if name is None:
-        return  # Invalid input or format, exit early
+        if name is None:
+            print("Name is required. Please try again.")
+            continue  # Prompt again for valid input
 
-    # Check if the user has been on any flight
-    flights_found = check_flight_history(name, flight_number, date)
+        # Check if the user has been on any flight
+        flights_found = check_flight_history(name, flight_number, date)
 
-    if flights_found:
-        print("\nFlight History for", name)
-        for flight in flights_found:
-            print(
-                f"Flight Number: {flight['flight_number']}, Date: {flight['date']}, Destination: {flight['destination']}")
-    else:
-        print(f"\nNo flight records found for {name} based on the provided information.")
+        if flights_found:
+            print("\nFlight History for", name)
+            display_flight_history(flights_found)
+        else:
+            print(f"\nNo flight records found for {name} based on the provided information.")
+        break
 
 
 # Run the script
