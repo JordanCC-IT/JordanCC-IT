@@ -1,0 +1,103 @@
+$sourceFolder = "C:\JordanScript2"
+$destinationFolder = "C:\Jordan1"
+$backupFolder = "C:\Backup"
+$logFile = "C:\file_transfer_log1.txt"
+$maxAttempts = 3
+
+function Log-Message {
+    param ([string]$message)
+    $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+    "$timestamp - $message" | Out-File -Append -FilePath $logFile
+}
+
+function Retry-Transfer {
+    param (
+        [string]$operation,
+        [scriptblock]$action,
+        [int]$maxRetries
+    )
+    
+    $attempt = 0
+    $success = $false
+    while ($attempt -lt $maxRetries -and !$success) {
+        try {
+            & $action
+            $success = $true
+            Log-Message "$operation successful on attempt ($($attempt + 1))."
+        }
+        catch {
+            $attempt++
+            Log-Message "$operation failed on attempt ($attempt). Retrying..."
+            if ($attempt -eq $maxRetries) {
+                Log-Message "$operation failed after $maxRetries attempts."
+            }
+        }
+    }
+    return $success
+}
+
+# Prepare log file
+if (-not (Test-Path -Path $logFile)) {
+    New-Item -ItemType File -Path $logFile | Out-Null
+}
+
+Log-Message "File transfer process started."
+
+# Ensure backup folder exists
+if (-not (Test-Path -Path $backupFolder)) {
+    New-Item -ItemType Directory -Path $backupFolder | Out-Null
+    Log-Message "Backup folder created: $backupFolder"
+}
+
+$backupSuccess = $true
+$normalizedSource = $sourceFolder.TrimEnd('\')
+
+# Get all items to process (no date filter)
+$itemsToProcess = Get-ChildItem -Path $sourceFolder -Recurse -File
+
+# --- Backup Loop ---
+foreach ($item in $itemsToProcess) {
+    $relativePath = $item.FullName.Substring($normalizedSource.Length).TrimStart('\')
+    $backupPath = Join-Path -Path $backupFolder -ChildPath $relativePath
+    $backupDir = Split-Path -Path $backupPath -Parent
+
+    $action = {
+        if (-not (Test-Path -Path $backupDir)) {
+            New-Item -ItemType Directory -Path $backupDir -Force | Out-Null
+            Log-Message "Created directory in backup: $backupDir"
+        }
+        Copy-Item -Path $item.FullName -Destination $backupPath -Force
+        Log-Message "Backed up: $($item.FullName) to $backupPath"
+    }
+
+    $success = Retry-Transfer -operation "Backup of $($item.FullName)" -action $action -maxRetries $maxAttempts
+    if (-not $success) {
+        $backupSuccess = $false
+    }
+}  # <-- Closing brace for 'foreach' loop here
+
+# --- Move Loop ---
+if ($backupSuccess) {
+    foreach ($item in $itemsToProcess) {
+        $relativePath = $item.FullName.Substring($normalizedSource.Length).TrimStart('\')
+        $destPath = Join-Path -Path $destinationFolder -ChildPath $relativePath
+        $destDir = Split-Path -Path $destPath -Parent
+
+        $moveAction = {
+            if (-not (Test-Path -Path $destDir)) {
+                New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+                Log-Message "Created directory in destination: $destDir"
+            }
+            Move-Item -Path $item.FullName -Destination $destPath -Force
+            Log-Message "Moved: $($item.FullName) to $destPath"
+        }
+
+        Retry-Transfer -operation "Move of $($item.FullName)" -action $moveAction -maxRetries $maxAttempts
+    }
+} # <-- Closing brace for 'if' block here
+
+else {
+    Log-Message "Backup failed. Files were not moved."
+}
+
+Log-Message "File transfer process completed."
